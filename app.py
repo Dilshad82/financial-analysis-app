@@ -10,7 +10,7 @@ from reports import ReportGenerator
 
 # --- إعداد الصفحة القياسي ---
 st.set_page_config(
-    page_title="منصة التحليل المالي المفتوحة",
+    page_title="منصة التحليل المالي",
     layout="wide",
     page_icon="📈",
     initial_sidebar_state="collapsed"
@@ -23,7 +23,7 @@ if "default_karat" not in st.session_state:
 if "default_iqd_rate" not in st.session_state:
     st.session_state["default_iqd_rate"] = 1480.0
 
-# --- 2. تحسينات التجاوب الشاملة للموبايل والشاشات الصغرى ---
+# --- 2. تحسينات CSS شاملة للتجاوب مع الموبايل (Mobile-First UI) ---
 st.markdown("""
 <style>
     .stApp {
@@ -31,44 +31,54 @@ st.markdown("""
         color: #e6edf3;
     }
 
-    /* ضبط الحواف العامة */
+    /* تقليل الحواف والهوامش للحد الأقصى على الموبايل */
     .main .block-container {
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-        padding-top: 0.8rem !important;
-        padding-bottom: 2rem !important;
+        padding: 0.5rem 0.5rem 1.5rem 0.5rem !important;
+        max-width: 100% !important;
     }
 
-    /* تعديل حجم العنوان الرئيسي ليكون مناسباً للموبايل */
-    .main h1 {
-        font-size: clamp(1.3rem, 4vw, 2.2rem) !important;
-        text-align: center !important;
-        margin-bottom: 15px !important;
-        white-space: nowrap !important;
+    /* عنوان رئيسي مرن ومستجيب */
+    .app-title {
+        font-size: clamp(1.1rem, 5vw, 1.8rem);
+        font-weight: 800;
+        text-align: center;
+        color: #ffffff;
+        margin: 5px 0 12px 0;
     }
 
-    /* شريط الأسواق المباشرة العلوي المتجاوب */
+    /* شريط أسواق أفقي قابل للسحب (Horizontal Scrolling Ticker Bar) */
     .ticker-bar {
-        background: rgba(13, 17, 23, 0.85);
+        background: rgba(13, 17, 23, 0.9);
         border: 1px solid rgba(48, 54, 61, 0.8);
-        border-radius: 12px;
-        padding: 8px 12px;
+        border-radius: 10px;
+        padding: 8px 10px;
         margin-bottom: 15px;
         display: flex;
         flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: space-around;
+        justify-content: flex-start;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
         direction: rtl;
+    }
+
+    /* إخفاء شريط السحب الزائد للحفاظ على المظهر */
+    .ticker-bar::-webkit-scrollbar {
+        display: none;
     }
 
     .ticker-item {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+        font-size: 0.82rem;
         font-weight: 600;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 4px 8px;
+        border-radius: 6px;
+        flex-shrink: 0;
     }
 
     .badge-up {
@@ -89,44 +99,62 @@ st.markdown("""
         font-weight: bold;
     }
 
-    /* تصميم بطاقات المؤشرات (stMetric) */
+    /* إجبار كروت st.columns على الظهور في صفين متجاورين (2x2 Grid) على الشاشات الصغيرة */
+    @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            flex-direction: row-reverse !important;
+            gap: 6px !important;
+        }
+        div[data-testid="column"] {
+            width: calc(50% - 4px) !important;
+            flex: 1 1 calc(50% - 4px) !important;
+            min-width: calc(50% - 4px) !important;
+        }
+    }
+
+    /* بطاقات المؤشرات (stMetric) */
     [data-testid="stMetric"] {
-        background: rgba(22, 27, 34, 0.65) !important;
-        backdrop-filter: blur(8px) !important;
+        background: rgba(22, 27, 34, 0.7) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 12px !important;
-        padding: 8px 4px !important;
+        border-radius: 10px !important;
+        padding: 6px 4px !important;
         text-align: center !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
     }
 
     [data-testid="stMetricValue"] {
-        font-size: clamp(0.95rem, 3.5vw, 1.3rem) !important;
+        font-size: clamp(0.9rem, 4vw, 1.2rem) !important;
         font-weight: 700 !important;
-        color: #ffffff !important;
-        justify-content: center !important;
     }
 
     [data-testid="stMetricLabel"] {
-        font-size: clamp(0.7rem, 2.5vw, 0.85rem) !important;
+        font-size: clamp(0.68rem, 2.8vw, 0.8rem) !important;
         color: #8b949e !important;
-        font-weight: 600 !important;
-        justify-content: center !important;
     }
 
-    /* إجبار شبكة الكروت (st.columns) على العرض كصفين بجانب بعض في الموبايل */
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"] {
-            display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 8px !important;
-            direction: rtl !important;
-        }
-        div[data-testid="column"] {
-            width: 100% !important;
-            min-width: 0 !important;
-        }
+    /* أزرار المشاركة */
+    .share-container {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
     }
+
+    .share-btn-wa, .share-btn-tg {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+        color: white;
+        text-align: center;
+        font-size: 0.8rem;
+        width: 100%;
+    }
+
+    .share-btn-wa { background-color: #25D366; }
+    .share-btn-tg { background-color: #0088cc; }
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -168,7 +196,8 @@ def render_market_overview_bar():
         st.markdown(full_bar_html, unsafe_allow_html=True)
 
 
-st.title("📈 المنصة المالية للتحليل الفني")
+# عرض العنوان والتيكر بار
+st.markdown('<div class="app-title">📈 المنصة المالية للتحليل الفني والشامل</div>', unsafe_allow_html=True)
 render_market_overview_bar()
 
 
@@ -400,7 +429,7 @@ with tab_advanced:
 
 # --- التصدير والمشاركة ---
 st.subheader("📥 التصدير والمشاركة")
-exp_col1, exp_col2 = st.columns(2)
+exp_col1, exp_col2, exp_col3 = st.columns([1, 1, 1])
 
 with exp_col1:
     excel_data = ReportGenerator.convert_df_to_excel(data)
@@ -409,3 +438,19 @@ with exp_col1:
 with exp_col2:
     word_doc = ReportGenerator.generate_rsi_word_doc()
     st.download_button("📝 دليل (Word)", data=word_doc, file_name="دليل_المؤشرات.docx", use_container_width=True)
+
+# روابط المشاركة
+encoded_text = urllib.parse.quote(share_text)
+wa_url = f"https://api.whatsapp.com/send?text={encoded_text}"
+tg_url = f"https://t.me/share/url?url=&text={encoded_text}"
+
+with exp_col3:
+    st.markdown(
+        f'''
+        <div class="share-container">
+            <a href="{wa_url}" target="_blank" class="share-btn-wa">💬 واتساب</a>
+            <a href="{tg_url}" target="_blank" class="share-btn-tg">✈️ تليجرام</a>
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
