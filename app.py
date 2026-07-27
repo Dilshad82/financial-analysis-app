@@ -81,41 +81,42 @@ st.markdown("""
 
     /* شريط النظرة العامة السريع (Market Overview Bar) */
     .ticker-bar {
-        background: rgba(13, 17, 23, 0.8);
+        background: rgba(13, 17, 23, 0.85);
         border: 1px solid rgba(48, 54, 61, 0.8);
         border-radius: 12px;
-        padding: 10px 15px;
-        margin-bottom: 20px;
+        padding: 12px 20px;
+        margin-bottom: 25px;
         display: flex;
-        justify-content: space-between;
+        justify-content: space-around;
         align-items: center;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 15px;
         direction: rtl;
     }
 
     .ticker-item {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 6px;
-        font-size: 0.88rem;
+        gap: 8px;
+        font-size: 0.92rem;
+        font-weight: 600;
     }
 
     .badge-up {
-        background-color: rgba(46, 213, 115, 0.15);
+        background-color: rgba(46, 213, 115, 0.2);
         color: #2ed573;
-        padding: 2px 8px;
+        padding: 3px 10px;
         border-radius: 6px;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         font-weight: bold;
     }
 
     .badge-down {
-        background-color: rgba(255, 71, 87, 0.15);
+        background-color: rgba(255, 71, 87, 0.2);
         color: #ff4757;
-        padding: 2px 8px;
+        padding: 3px 10px;
         border-radius: 6px;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         font-weight: bold;
     }
 
@@ -161,7 +162,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- دالة عرض الشريط المالي اللحظي في الأعلى ---
+# --- دالة عرض الشريط المالي اللحظي في الأعلى (المعدلة) ---
 @st.cache_data(ttl=300)
 def render_market_overview_bar():
     """عرض شريط نظرة عامة سريعة للأسواق العالمية في أعلى لوحة التحكم"""
@@ -171,7 +172,7 @@ def render_market_overview_bar():
         "🪙 بيتكوين": "BTC-USD"
     }
 
-    items_html = ""
+    items_html_list = []
     for label, symbol in tickers.items():
         try:
             df = yf.download(symbol, period="5d", interval="1d", progress=False)
@@ -190,17 +191,14 @@ def render_market_overview_bar():
                     badge_class = "badge-down"
                     arrow = "▼"
 
-                items_html += f"""
-                <div class="ticker-item">
-                    <span><b>{label}:</b> ${last_price:,.2f}</span>
-                    <span class="{badge_class}">{arrow} {abs(pct_change):.2f}%</span>
-                </div>
-                """
+                item_str = f'<div class="ticker-item"><span><b>{label}:</b> ${last_price:,.2f}</span><span class="{badge_class}">{arrow} {abs(pct_change):.2f}%</span></div>'
+                items_html_list.append(item_str)
         except Exception:
             continue
 
-    if items_html:
-        st.markdown(f'<div class="ticker-bar">{items_html}</div>', unsafe_allow_html=True)
+    if items_html_list:
+        full_bar_html = f'<div class="ticker-bar">{"".join(items_html_list)}</div>'
+        st.markdown(full_bar_html, unsafe_allow_html=True)
 
 
 st.title("📈 المنصة المالية للتحليل الفني والشامل")
