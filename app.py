@@ -376,21 +376,26 @@ else:
 
     share_text = f"📈 تقرير {selected_label}: ${latest_row['Close']:,.2f} | التوصية: {signal_label}"
 
-# --- الرسوم البيانية ---
+# --- الرسوم البيانية المنسقة للموبايل والفريمات اليومية ---
 st.subheader(f"📊 الرسم البياني ({timeframe_choice})")
 
 tab_main, tab_oscillators, tab_advanced = st.tabs(["📈 السعر و Volume", "⚡ RSI & MACD", "🎯 Stoch & ADX"])
 
+# تحديد استثناء عطلات نهاية الأسبوع للأسهم والمعادن لإخفاء الفجوات
+rangebreaks_config = [dict(bounds=["sat", "mon"])] if ("USD" not in selected_symbol and selected_symbol != "BTC-USD") else []
+
 with tab_main:
     has_volume = 'Volume' in data.columns and (data['Volume'] > 0).any()
     if has_volume:
-        fig_main = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.7, 0.3])
+        fig_main = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.72, 0.28])
     else:
         fig_main = make_subplots(rows=1, cols=1)
 
     fig_main.add_trace(_plotly_go.Scatter(x=data.index, y=data['Close'], name='السعر', line=dict(color='#1f77b4', width=2)), row=1, col=1)
-    fig_main.add_trace(_plotly_go.Scatter(x=data.index, y=data['BB_Upper'], name='Upper', line=dict(color='gray', dash='dash')), row=1, col=1)
-    fig_main.add_trace(_plotly_go.Scatter(x=data.index, y=data['BB_Lower'], name='Lower', line=dict(color='gray', dash='dash')), row=1, col=1)
+
+    if 'BB_Upper' in data.columns and 'BB_Lower' in data.columns:
+        fig_main.add_trace(_plotly_go.Scatter(x=data.index, y=data['BB_Upper'], name='Upper BB', line=dict(color='rgba(255,255,255,0.3)', dash='dash')), row=1, col=1)
+        fig_main.add_trace(_plotly_go.Scatter(x=data.index, y=data['BB_Lower'], name='Lower BB', line=dict(color='rgba(255,255,255,0.3)', dash='dash')), row=1, col=1)
 
     if 'VWAP' in data.columns:
         fig_main.add_trace(_plotly_go.Scatter(x=data.index, y=data['VWAP'], name='VWAP', line=dict(color='#ff9f43', width=1.5, dash='dot')), row=1, col=1)
@@ -399,21 +404,43 @@ with tab_main:
         vol_colors = ['#2ed573' if c >= o else '#ff4757' for c, o in zip(data['Close'], data['Open'])]
         fig_main.add_trace(_plotly_go.Bar(x=data.index, y=data['Volume'], name='Volume', marker_color=vol_colors), row=2, col=1)
 
-    fig_main.update_layout(height=420, showlegend=False, margin=dict(l=5, r=5, t=10, b=10))
-    st.plotly_chart(fig_main, use_container_width=True, config={"responsive": True})
+    fig_main.update_layout(
+        autosize=True,
+        height=380,
+        showlegend=False,
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(rangebreaks=rangebreaks_config),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    fig_main.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.05)')
+    fig_main.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor='rgba(255,255,255,0.05)')
+
+    st.plotly_chart(fig_main, use_container_width=True, config={"responsive": True, "displayModeBar": False})
 
 with tab_oscillators:
     fig_osc = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08)
-    fig_osc.add_trace(_plotly_go.Scatter(x=data.index, y=data['RSI'], name='RSI', line=dict(color='#9467bd')), row=1, col=1)
-    fig_osc.add_hline(y=70, line_dash="dot", line_color="red", row=1, col=1)
-    fig_osc.add_hline(y=30, line_dash="dot", line_color="green", row=1, col=1)
 
-    fig_osc.add_trace(_plotly_go.Scatter(x=data.index, y=data['MACD'], name='MACD', line=dict(color='#ff7f0e')), row=2, col=1)
-    fig_osc.add_trace(_plotly_go.Scatter(x=data.index, y=data['Signal_Line'], name='Signal', line=dict(color='#2ca02c')), row=2, col=1)
-    fig_osc.add_trace(_plotly_go.Bar(x=data.index, y=data['MACD_Hist'], name='Hist'), row=2, col=1)
+    if 'RSI' in data.columns:
+        fig_osc.add_trace(_plotly_go.Scatter(x=data.index, y=data['RSI'], name='RSI', line=dict(color='#9467bd')), row=1, col=1)
+        fig_osc.add_hline(y=70, line_dash="dot", line_color="#ff4757", row=1, col=1)
+        fig_osc.add_hline(y=30, line_dash="dot", line_color="#2ed573", row=1, col=1)
 
-    fig_osc.update_layout(height=400, showlegend=False, margin=dict(l=5, r=5, t=10, b=10))
-    st.plotly_chart(fig_osc, use_container_width=True, config={"responsive": True})
+    if 'MACD' in data.columns:
+        fig_osc.add_trace(_plotly_go.Scatter(x=data.index, y=data['MACD'], name='MACD', line=dict(color='#ff7f0e')), row=2, col=1)
+        fig_osc.add_trace(_plotly_go.Scatter(x=data.index, y=data['Signal_Line'], name='Signal', line=dict(color='#2ca02c')), row=2, col=1)
+        fig_osc.add_trace(_plotly_go.Bar(x=data.index, y=data['MACD_Hist'], name='Hist'), row=2, col=1)
+
+    fig_osc.update_layout(
+        autosize=True,
+        height=350,
+        showlegend=False,
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(rangebreaks=rangebreaks_config),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    st.plotly_chart(fig_osc, use_container_width=True, config={"responsive": True, "displayModeBar": False})
 
 with tab_advanced:
     fig_adv = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08)
@@ -424,8 +451,16 @@ with tab_advanced:
     if 'ADX' in data.columns:
         fig_adv.add_trace(_plotly_go.Scatter(x=data.index, y=data['ADX'], name='ADX', line=dict(color='#54a0ff', width=2)), row=2, col=1)
 
-    fig_adv.update_layout(height=400, showlegend=False, margin=dict(l=5, r=5, t=10, b=10))
-    st.plotly_chart(fig_adv, use_container_width=True, config={"responsive": True})
+    fig_adv.update_layout(
+        autosize=True,
+        height=350,
+        showlegend=False,
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(rangebreaks=rangebreaks_config),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    st.plotly_chart(fig_adv, use_container_width=True, config={"responsive": True, "displayModeBar": False})
 
 # --- التصدير والمشاركة ---
 st.subheader("📥 التصدير والمشاركة")
